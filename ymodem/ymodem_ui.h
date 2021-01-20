@@ -2,7 +2,6 @@
 #define UI_YMODEM_H
 
 #include <QWidget>
-#include <QSerialPort>
 #include "serialporthelper.h"
 #include "YmodemFileTransmit.h"
 #include "YmodemFileReceive.h"
@@ -40,15 +39,13 @@ private slots:
     void receiveStatus(YmodemFileReceive::Status status);
     void transmitProgress(int progress);
     void receiveProgress(int progress);
-    void on_transmitBrowse_clicked();
     void updateSerialPort(QSerialPort *port);
     void ReadData();
     void ss_timer_irq();
-    void on_receiveBrowse_clicked();
+    void on_transmitBrowse_clicked();
     void on_transmitButton_clicked();
+    void on_receiveBrowse_clicked();
     void on_receiveButton_clicked();
-    void on_btn_find_seriaport_clicked();
-    void on_btn_open_port_clicked();
     void on_btn_start_update_clicked();
     void show_received(QString msg);
     void show_sent(QString msg);

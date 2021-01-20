@@ -4,7 +4,6 @@
 #include <QFile>
 #include <QTimer>
 #include <QObject>
-#include <QSerialPort>
 #include "CostumTran.h"
 #include "serialporthelper.h"
 

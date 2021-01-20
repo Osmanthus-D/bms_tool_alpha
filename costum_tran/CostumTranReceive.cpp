@@ -52,7 +52,7 @@ bool CostumTranReceive::startReceive()
     progress = 0;
     status   = StatusEstablish;
 
-    if(serialPort->open(QSerialPort::ReadWrite) == true)
+    if(openPort())
     {
         readTimer->start(READ_TIME_OUT);
 

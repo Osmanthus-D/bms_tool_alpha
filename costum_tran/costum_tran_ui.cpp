@@ -118,7 +118,7 @@ void ui_costum_tran::on_pushButtonExportHistoricalData_clicked()
         }
         else
         {
-            QMessageBox::warning(this, tr("Export"), tr("Serial Port is Ocuupied."), tr("Close"));
+            QMessageBox::warning(this, tr("Export"), tr("Serial Port Open Failed."), tr("Close"));
         }
     }
     else
@@ -139,7 +139,7 @@ void ui_costum_tran::on_pushButtonExportAlarmData_clicked()
         }
         else
         {
-            QMessageBox::warning(this, tr("Export"), tr("Serial Port is Ocuupied."), tr("Close"));
+            QMessageBox::warning(this, tr("Export"), tr("Serial Port Open Failed."), tr("Close"));
         }
     }
     else
@@ -175,9 +175,10 @@ void ui_costum_tran::startRecv()
             ui->pushButtonExportHistoricalData->setText(tr("Cancel"));
         }
 
-        emit reportStatus(genPortSum(), true);
         qDebug("%s(%s-%s-%s-%s) opened", qPrintable(list.at(0)), qPrintable(list.at(2)), qPrintable(list.at(3)),
                qPrintable(list.at(4).at(0)), qPrintable(list.at(5)));
+
+        emit reportStatus(genPortSum(), true);
     }
     else
     {
@@ -301,6 +302,41 @@ void ui_costum_tran::transmitStatus(CostumTran::Status status)
     }
 }
 
+void ui_costum_tran::showRecvStatus(Status status)
+{
+    switch (status)
+    {
+        case CostumTranReceive::StatusEstablish:
+        {
+            break;
+        }
+        case CostumTranReceive::StatusTransmit:
+        {
+            break;
+        }
+        case CostumTranReceive::StatusFinish:
+        {
+            QMessageBox::warning(this, tr("Export"), tr("Data Export Successful"), tr("Close"));
+            break;
+        }
+        case CostumTranReceive::StatusAbort:
+        {
+            QMessageBox::information(this, tr("Export"), tr("Data Export Cancelled."), tr("Close"));
+            break;
+        }
+        case CostumTranReceive::StatusTimeout:
+        {
+            QMessageBox::information(this, tr("Export"), tr("Communication Time Out, Export Finished."), tr("Close"));
+            break;
+        }
+        default:
+        {
+            QMessageBox::warning(this, tr("Export"), tr("Data Export Failed"), tr("Close"));
+            break;
+        }
+    }
+}
+
 void ui_costum_tran::receiveStatus(CostumTranReceive::Status status)
 {
     switch(status)
@@ -332,8 +368,7 @@ void ui_costum_tran::receiveStatus(CostumTranReceive::Status status)
             ui->receiveBrowse->setEnabled(true);
             ui->pushButtonExportAlarmData->setText(tr("Start"));
 
-            QMessageBox::warning(this, tr("Export"), tr("Data Export Successful"), tr("Close"));
-
+            emit reportStatus(QString("%1 CLOSED").arg(genPortSum().split('\40').at(0)), false);
             break;
         }
 
@@ -358,7 +393,6 @@ void ui_costum_tran::receiveStatus(CostumTranReceive::Status status)
             ui->pushButtonExportHistoricalData->setText(tr("Start"));
 
             emit reportStatus(QString("%1 CLOSED").arg(genPortSum().split('\40').at(0)), false);
-            QMessageBox::information(this, tr("Export"), tr("Data Export Cancelled."), tr("Close"));
             break;
         }
 
@@ -383,11 +417,8 @@ void ui_costum_tran::receiveStatus(CostumTranReceive::Status status)
             ui->pushButtonExportHistoricalData->setText(tr("Start"));
 
             emit reportStatus(QString("%1 CLOSED").arg(genPortSum().split('\40').at(0)), false);
-            QMessageBox::information(this, tr("Export"), tr("Communication Time Out, Export Finished."), tr("Close"));
-
             break;
         }
-
         default:
         {
             receiveButtonStatus = false;
@@ -405,30 +436,11 @@ void ui_costum_tran::receiveStatus(CostumTranReceive::Status status)
             ui->receiveBrowse->setEnabled(true);
             ui->pushButtonExportAlarmData->setText(tr("Start"));
 
-            QMessageBox::warning(this, tr("Export"), tr("Data Export Failed"), tr("Close"));
+            emit reportStatus(QString("%1 CLOSED").arg(genPortSum().split('\40').at(0)), false);
         }
     }
-}
 
-void ui_costum_tran::on_btn_find_seriaport_clicked()
-{
-    Find_SerialPort();
-}
-
-void ui_costum_tran::Find_SerialPort()
-{
-    const auto infos = QSerialPortInfo::availablePorts();
-    ui->cbx_com_name->clear();
-    for(const QSerialPortInfo &info : infos)
-    {
-        QSerialPort serial;
-        serial.setPort(info);
-        if(serial.open(QIODevice::ReadWrite))
-        {
-           ui->cbx_com_name->addItem(info.portName());
-           serial.close();
-        }
-    }
+    showRecvStatus(status);
 }
 
 QSerialPort::StopBits ui_costum_tran::to_convert_stopbit(QString  bit)
@@ -469,77 +481,6 @@ QSerialPort::Parity ui_costum_tran::to_convert_paritybit(QString  bit)
        return QSerialPort::EvenParity;
     return QSerialPort::NoParity;
 
-}
-
-void ui_costum_tran::on_btn_open_port_clicked()
-{
-    static bool button_status = false;
-
-   if(button_status == false)
-   {
-        serialPort->setPortName(ui->cbx_com_name->currentText());
-       if(serialPort->open(QSerialPort::ReadWrite) == true)
-       {
-           button_status = true;
-           serialPort->setBaudRate(ui->cbx_bandrate->currentText().toInt());
-           serialPort->setStopBits(to_convert_stopbit(ui->cbx_stopbit->currentText()));
-           serialPort->setDataBits(to_convert_databit(ui->cbx_databit->currentText()));
-           serialPort->setParity(to_convert_paritybit(ui->cbx_paritybit->currentText()));
-           ui->btn_open_port->setText(QStringLiteral("关闭串口"));
-           ui->cbx_bandrate->setEnabled(false);
-           ui->cbx_stopbit->setEnabled(false);
-           ui->cbx_databit->setEnabled(false);
-           ui->cbx_paritybit->setEnabled(false);
-           ui->cbx_com_name->setEnabled(false);
-           ui->btn_find_seriaport->setEnabled(false);
-           //this->ss_ui->connected_serial_port();
-#if QT_MAJOR_VERSION > 4
-           connect(serialPort, &QSerialPort::readyRead, this, &ui_ymodem::ReadData);
-#else
-//           connect(serialPort, SIGNAL(readyRead()), this, SLOT(ReadData()));
-#endif
-
-          // ui->transmitBrowse->setEnabled(true);
-          // ui->receiveBrowse->setEnabled(true);
-
-           if(ui->transmitPath->text().isEmpty() != true)
-           {
-               ui->pushButtonExportHistoricalData->setEnabled(true);
-           }
-
-           if(ui->receivePath->text().isEmpty() != true)
-           {
-               ui->pushButtonExportAlarmData->setEnabled(true);
-           }
-       }
-       else
-       {
-           QMessageBox::warning(this, QStringLiteral("串口打开失败"), QStringLiteral("请检查串口是否已被占用！"), QStringLiteral("关闭"));
-       }
-   }
-   else
-   {
-       button_status = false;
-
-       serialPort->close();
-
-//       serialPort->clear();
-//       serialPort->close();
-
-       ui->btn_open_port->setText(QStringLiteral("打开串口"));
-       ui->cbx_bandrate->setEnabled(true);
-       ui->cbx_stopbit->setEnabled(true);
-       ui->cbx_databit->setEnabled(true);
-       ui->cbx_paritybit->setEnabled(true);
-       ui->cbx_com_name->setEnabled(true);
-       ui->btn_find_seriaport->setEnabled(true);
-
-       ui->transmitBrowse->setDisabled(true);
-      // ui->pushButtonExportHistoricalData->setDisabled(true);
-
-       ui->receiveBrowse->setDisabled(true);
-       //ui->pushButtonExportAlarmData->setDisabled(true);
-   }
 }
 
 void ui_costum_tran::ss_timer_irq()

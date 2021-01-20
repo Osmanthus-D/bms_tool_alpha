@@ -4,7 +4,6 @@
 #include <QObject>
 #include <QFile>
 #include <QTimer>
-#include <QSerialPort>
 #include "serialporthelper.h"
 #include "Ymodem.h"
 

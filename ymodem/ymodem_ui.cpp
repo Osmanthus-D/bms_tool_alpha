@@ -113,9 +113,11 @@ void ui_ymodem::on_receiveBrowse_clicked()
 
 void ui_ymodem::on_transmitButton_clicked()
 {
+    QStringList list = genPortSum().remove(',').split('\40');
+
     if(transmitButtonStatus == false)
     {
-        serialPort->close();
+        closePort();
 
         ymodemFileTransmit->setFileName(ui->transmitPath->text());
 
@@ -132,9 +134,10 @@ void ui_ymodem::on_transmitButton_clicked()
             ui->transmitButton->setText(QStringLiteral("取消"));
             ui->transmitProgress->setValue(0);
 
-            emit reportStatus(genPortSum(), true);
             qDebug("%s(%s-%s-%s-%s) opened", qPrintable(list.at(0)), qPrintable(list.at(2)), qPrintable(list.at(3)),
                    qPrintable(list.at(4).at(0)), qPrintable(list.at(5)));
+
+            emit reportStatus(genPortSum(), true);
         }
         else
         {
@@ -149,9 +152,11 @@ void ui_ymodem::on_transmitButton_clicked()
 
 void ui_ymodem::on_receiveButton_clicked()
 {
+    QStringList list = genPortSum().remove(',').split('\40');
+
     if(receiveButtonStatus == false)
     {
-        serialPort->close();
+        closePort();
 
         ymodemFileReceive->setFilePath(ui->receivePath->text());
         if(ymodemFileReceive->startReceive() == true)
@@ -167,9 +172,10 @@ void ui_ymodem::on_receiveButton_clicked()
             ui->receiveButton->setText(QStringLiteral("取消"));
             ui->receiveProgress->setValue(0);
 
-            emit reportStatus(genPortSum(), true);
             qDebug("%s(%s-%s-%s-%s) opened", qPrintable(list.at(0)), qPrintable(list.at(2)), qPrintable(list.at(3)),
                    qPrintable(list.at(4).at(0)), qPrintable(list.at(5)));
+
+            emit reportStatus(genPortSum(), true);
         }
         else
         {
@@ -390,11 +396,6 @@ void ui_ymodem::receiveStatus(YmodemFileReceive::Status status)
     }
 }
 
-void ui_ymodem::on_btn_find_seriaport_clicked()
-{
-    Find_SerialPort();
-}
-
 void ui_ymodem::Find_SerialPort()
 {
     const auto infos = QSerialPortInfo::availablePorts();
@@ -449,72 +450,6 @@ QSerialPort::Parity ui_ymodem::to_convert_paritybit(QString  bit)
        return QSerialPort::EvenParity;
     return QSerialPort::NoParity;
 
-}
-
-void ui_ymodem::on_btn_open_port_clicked()
-{
-    static bool button_status = false;
-
-    if(button_status == false)
-    {
-       if(serialPort->open(QSerialPort::ReadWrite) == true)
-       {
-           button_status = true;
-           ui->btn_open_port->setText(QStringLiteral("关闭串口"));
-           ui->cbx_bandrate->setEnabled(false);
-           ui->cbx_stopbit->setEnabled(false);
-           ui->cbx_databit->setEnabled(false);
-           ui->cbx_paritybit->setEnabled(false);
-           ui->cbx_com_name->setEnabled(false);
-           ui->btn_find_seriaport->setEnabled(false);
-           //this->ss_ui->connected_serial_port();
-#if QT_MAJOR_VERSION > 4
-           connect(serialPort, &QSerialPort::readyRead, this, &ui_ymodem::ReadData);
-#else
-//           connect(serialPort, SIGNAL(readyRead()), this, SLOT(ReadData()));
-#endif
-
-          // ui->transmitBrowse->setEnabled(true);
-          // ui->receiveBrowse->setEnabled(true);
-
-           if(ui->transmitPath->text().isEmpty() != true)
-           {
-               ui->transmitButton->setEnabled(true);
-           }
-
-           if(ui->receivePath->text().isEmpty() != true)
-           {
-               ui->receiveButton->setEnabled(true);
-           }
-       }
-       else
-       {
-           QMessageBox::warning(this, QStringLiteral("串口打开失败"), QStringLiteral("请检查串口是否已被占用！"), QStringLiteral("关闭"));
-       }
-   }
-   else
-   {
-       button_status = false;
-
-       serialPort->close();
-
-//       serialPort->clear();
-//       serialPort->close();
-
-       ui->btn_open_port->setText(QStringLiteral("打开串口"));
-       ui->cbx_bandrate->setEnabled(true);
-       ui->cbx_stopbit->setEnabled(true);
-       ui->cbx_databit->setEnabled(true);
-       ui->cbx_paritybit->setEnabled(true);
-       ui->cbx_com_name->setEnabled(true);
-       ui->btn_find_seriaport->setEnabled(true);
-
-       ui->transmitBrowse->setDisabled(true);
-      // ui->transmitButton->setDisabled(true);
-
-       ui->receiveBrowse->setDisabled(true);
-       //ui->receiveButton->setDisabled(true);
-   }
 }
 
 void ui_ymodem::on_btn_start_update_clicked()
