@@ -5,8 +5,8 @@
 #include <QMenuBar>
 #include <QDebug>
 #include <QSettings>
-#include "ui_costum_tran.h"
-#include "ui_ymodem.h"
+#include "costum_tran_ui.h"
+#include "ymodem_ui.h"
 #include "infodisplay.h"
 #include "optionsdialog.h"
 

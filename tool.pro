@@ -21,25 +21,25 @@ SOURCES += main.cpp \
     costum_tran/CostumTran.cpp \
     costum_tran/CostumTranReceive.cpp \
     costum_tran/CostumTranTransmit.cpp \
-    costum_tran/ui_costum_tran.cpp \
+    costum_tran/costum_tran_ui.cpp \
     ymodem/Ymodem.cpp \
     ymodem/YmodemFileReceive.cpp \
     ymodem/YmodemFileTransmit.cpp \
-    ymodem/ui_ymodem.cpp \
+    ymodem/ymodem_ui.cpp \
     info_display/infodisplay.cpp \
     info_display/modbushelper.cpp \
     options/optionsdialog.cpp \
     preference/preference.cpp
 
 HEADERS  += widget.h \
-    costum_tran/ui_costum_tran.h \
+    costum_tran/costum_tran_ui.h \
     costum_tran/CostumTran.h \
     costum_tran/CostumTranReceive.h \
     costum_tran/CostumTranTransmit.h \
     ymodem/Ymodem.h \
     ymodem/YmodemFileReceive.h \
     ymodem/YmodemFileTransmit.h \
-    ymodem/ui_ymodem.h \
+    ymodem/ymodem_ui.h \
     info_display/infodisplay.h \
     info_display/modbushelper.h \
     options/optionsdialog.h \
@@ -47,8 +47,8 @@ HEADERS  += widget.h \
     info_display/defs.h
 
 FORMS    += widget.ui \
-    costum_tran/ui_costum_tran.ui \
-    ymodem/ui_ymodem.ui \
+    costum_tran/costum_tran_ui.ui \
+    ymodem/ymodem_ui.ui \
     info_display/infodisplay.ui \
     options/optionsdialog.ui
 

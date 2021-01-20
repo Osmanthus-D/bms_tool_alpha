@@ -1,45 +1,49 @@
-#include "ui_ymodem.h"
-#include "ui_ui_ymodem.h"
+#include "costum_tran_ui.h"
+#include "ui_ui_costum_tran.h"
 #include <QFileDialog>
 #include <QtCore>
 #include <QDebug>
 #include <QMessageBox>
 #include <QSerialPortInfo>
 
-ui_ymodem::ui_ymodem(QWidget *parent) :
+ui_costum_tran::ui_costum_tran(QWidget *parent) :
     QWidget(parent),
-    ui(new Ui::ui_ymodem),
+    ui(new Ui::ui_costum_tran),
     serialPort(new QSerialPort),
-    ymodemFileTransmit(new YmodemFileTransmit),
-    ymodemFileReceive(new YmodemFileReceive)
+    costumTranTransmit(new CostumTranTransmit),
+    costumTranReceive(new CostumTranReceive)
 {
     transmitButtonStatus = false;
     receiveButtonStatus  = false;
 
     ui->setupUi(this);
-    ui->groupBox->setVisible(false);
 //    Find_SerialPort();
     timer = new QTimer();
-    connect(ymodemFileTransmit, SIGNAL(transmitProgress(int)), this, SLOT(transmitProgress(int)));
-    connect(ymodemFileReceive, SIGNAL(receiveProgress(int)), this, SLOT(receiveProgress(int)));
-    connect(ymodemFileTransmit, SIGNAL(transmitStatus(YmodemFileTransmit::Status)), this, SLOT(transmitStatus(YmodemFileTransmit::Status)));
-    connect(ymodemFileReceive, SIGNAL(receiveStatus(YmodemFileReceive::Status)), this, SLOT(receiveStatus(YmodemFileReceive::Status)));
+    ui->groupBox->setVisible(false);
 
-    connect(ymodemFileReceive, SIGNAL(sendReceived(QString)), this, SLOT(show_received(QString)));
-    connect(ymodemFileReceive, SIGNAL(sendSent(QString)), this, SLOT(show_sent(QString)));
+    connect(costumTranTransmit, SIGNAL(transmitProgress(int)), this, SLOT(transmitProgress(int)));
+    connect(costumTranReceive, SIGNAL(receiveProgress(int)), this, SLOT(receiveProgress(int)));
+    connect(costumTranTransmit, SIGNAL(transmitStatus(CostumTranTransmit::Status)), this, SLOT(transmitStatus(CostumTranTransmit::Status)));
+    connect(costumTranReceive, SIGNAL(receiveStatus(CostumTranReceive::Status)), this, SLOT(receiveStatus(CostumTranReceive::Status)));
+
+    connect(costumTranReceive, SIGNAL(sendReceived(QString)), this, SLOT(show_received(QString)));
+    connect(costumTranReceive, SIGNAL(sendSent(QString)), this, SLOT(show_sent(QString)));
 
     connect(timer,SIGNAL(timeout()),this,SLOT(ss_timer_irq()));
+
+    QDateTime dateTime = QDateTime::fromString(QString("2020- 1-14/ 6: 4:10").replace(' ', '0'), "yyyy-MM-dd/hh:mm:ss");
+    qDebug() << dateTime.toString("yyyy-MM-dd/hh:mm:ss") << QString(10, 'x');
 }
 
-ui_ymodem::~ui_ymodem()
+ui_costum_tran::~ui_costum_tran()
 {
     delete ui;
     delete serialPort;
-    delete ymodemFileTransmit;
-    delete ymodemFileReceive;
+    delete costumTranTransmit;
+    delete costumTranReceive;
 }
 
-void ui_ymodem::ReadData()
+void ui_costum_tran::ReadData()
 {
     QByteArray buf;
        buf =  serialPort->readAll();
@@ -55,139 +59,180 @@ void ui_ymodem::ReadData()
 #if QT_MAJOR_VERSION > 4
                disconnect(serialPort, &QSerialPort::readyRead, this, &ui_ymodem::ReadData);// 连接固件升级的槽函数
 #else
-               disconnect(serialPort, SIGNAL(readyRead()), this, SLOT(ui_ymodem::ReadData()));// 连接固件升级的槽函数
+               disconnect(serialPort, SIGNAL(readyRead()), this, SLOT(ui_costum_tran::ReadData()));// 连接固件升级的槽函数
 #endif
-               on_transmitButton_clicked();
+               on_pushButtonExportHistoricalData_clicked();
            }
        }
        buf.clear();
 }
 
-void ui_ymodem::on_transmitBrowse_clicked()
+void ui_costum_tran::setPort(QSerialPort *port)
+{
+    serialPort->setPortName(port->portName());
+    if(!serialPort->setBaudRate(port->baudRate()))
+    {
+        qDebug() << __func__ << "set baud rate failed";
+        return;
+    }
+
+    if(!serialPort->setDataBits(port->dataBits()))
+    {
+        qDebug() << __func__ << "set data bits failed";
+        return;
+    }
+
+    if(!serialPort->setParity(port->parity()))
+    {
+        qDebug() << __func__ << "set parity failed";
+        return;
+    }
+
+    if(!serialPort->setStopBits(port->stopBits()))
+    {
+        qDebug() << __func__ << "set stop Bits failed";
+        return;
+    }
+
+    costumTranReceive->setPort(serialPort);
+}
+
+void ui_costum_tran::on_transmitBrowse_clicked()
 {
     ui->transmitPath->setText(QFileDialog::getOpenFileName(this, QStringLiteral("打开文件"), ".", QStringLiteral("任意文件 (*.*)")));
 
     if(ui->transmitPath->text().isEmpty() != true)
     {
-        ui->transmitButton->setEnabled(true);
+        ui->pushButtonExportHistoricalData->setEnabled(true);
     }
     else
     {
-        ui->transmitButton->setDisabled(true);
+        ui->pushButtonExportHistoricalData->setDisabled(true);
     }
 }
 
-void ui_ymodem::on_receiveBrowse_clicked()
+void ui_costum_tran::on_receiveBrowse_clicked()
 {
     ui->receivePath->setText(QFileDialog::getExistingDirectory(this, QStringLiteral("选择目录"), QStringLiteral("."), QFileDialog::ShowDirsOnly));
 
     if(ui->receivePath->text().isEmpty() != true)
     {
-        ui->receiveButton->setEnabled(true);
+        ui->pushButtonExportAlarmData->setEnabled(true);
     }
     else
     {
-        ui->receiveButton->setDisabled(true);
+        ui->pushButtonExportAlarmData->setDisabled(true);
     }
 }
 
-void ui_ymodem::on_transmitButton_clicked()
+void ui_costum_tran::on_pushButtonExportHistoricalData_clicked()
 {
-    qDebug() << __func__ << transmitButtonStatus;
     if(transmitButtonStatus == false)
     {
-        serialPort->close();
-
-        ymodemFileTransmit->setFileName(ui->transmitPath->text());
-        ymodemFileTransmit->setPort(this->serialPort);
-        //ymodemFileTransmit->setPortName(this->serialPort->);
-       // ymodemFileTransmit->setPortBaudRate(ui->comBaudRate->currentText().toInt());
-
-        if(ymodemFileTransmit->startTransmit() == true)
+        if(costumTranReceive->openPort())
         {
-            transmitButtonStatus = true;
-
-            //ui->comButton->setDisabled(true);
-
-            ui->receiveBrowse->setDisabled(true);
-            ui->receiveButton->setDisabled(true);
-
-            ui->transmitBrowse->setDisabled(true);
-            ui->transmitButton->setText(QStringLiteral("取消"));
-            ui->transmitProgress->setValue(0);
+            costumTranReceive->closePort();
+            mode = CostumTran::RequestData;
+            startRecv();
         }
         else
         {
-            QMessageBox::warning(this, QStringLiteral("失败"), QStringLiteral("文件发送失败！"), QStringLiteral("关闭"));
+            QMessageBox::warning(this, tr("Export"), tr("Serial Port is Ocuupied."), tr("Close"));
         }
     }
     else
     {
-        ymodemFileTransmit->stopTransmit();
+        costumTranReceive->stopReceive();
     }
 }
 
-void ui_ymodem::on_receiveButton_clicked()
+void ui_costum_tran::on_pushButtonExportAlarmData_clicked()
 {
     if(receiveButtonStatus == false)
     {
-        serialPort->close();
-
-        ymodemFileReceive->setFilePath(ui->receivePath->text());
-        ymodemFileReceive->setPortName(ui->cbx_com_name->currentText());
-        ymodemFileReceive->setPortBaudRate(ui->cbx_bandrate->currentText().toInt());
-
-        if(ymodemFileReceive->startReceive() == true)
+        if(costumTranReceive->openPort())
         {
-            receiveButtonStatus = true;
-
-           // ui->comButton->setDisabled(true);
-
-            ui->transmitBrowse->setDisabled(true);
-            ui->transmitButton->setDisabled(true);
-
-            ui->receiveBrowse->setDisabled(true);
-            ui->receiveButton->setText(QStringLiteral("取消"));
-            ui->receiveProgress->setValue(0);
+            costumTranReceive->closePort();
+            mode = CostumTran::RequestAlarm;
+            startRecv();
         }
         else
         {
-            QMessageBox::warning(this, u8"失败", u8"文件接收失败！", u8"关闭");
+            QMessageBox::warning(this, tr("Export"), tr("Serial Port is Ocuupied."), tr("Close"));
         }
     }
     else
     {
-        ymodemFileReceive->stopReceive();
+        costumTranReceive->stopReceive();
     }
 }
 
-void ui_ymodem::transmitProgress(int progress)
+void ui_costum_tran::startRecv()
 {
-    ui->transmitProgress->setValue(progress);
+    QStringList list = costumTranReceive->genPortSummary().remove(',').split('\40');
+
+    costumTranReceive->setFilePath(ui->receivePath->text());
+    costumTranReceive->setMode(mode);
+    if(costumTranReceive->startReceive() == true)
+    {
+        if(CostumTran::RequestAlarm == mode)
+        {
+            receiveButtonStatus = true;
+
+            ui->transmitBrowse->setDisabled(true);
+            ui->pushButtonExportHistoricalData->setDisabled(true);
+
+            ui->receiveBrowse->setDisabled(true);
+            ui->pushButtonExportAlarmData->setText(tr("Cancel"));
+        } else {
+            transmitButtonStatus = true;
+
+            ui->receiveBrowse->setDisabled(true);
+            ui->pushButtonExportAlarmData->setDisabled(true);
+
+            ui->transmitBrowse->setDisabled(true);
+            ui->pushButtonExportHistoricalData->setText(tr("Cancel"));
+        }
+
+        emit reportStatus(costumTranReceive->genPortSummary(), true);
+        qDebug("%s(%s-%s-%s-%s) opened", qPrintable(list.at(0)), qPrintable(list.at(2)), qPrintable(list.at(3)),
+               qPrintable(list.at(4).at(0)), qPrintable(list.at(5)));
+    }
+    else
+    {
+        QMessageBox::warning(this, tr("Export"), tr("Serial Port Open Failed."), tr("Close"));
+    }
 }
 
-void ui_ymodem::receiveProgress(int progress)
+void ui_costum_tran::transmitProgress(int progress)
 {
-    ui->receiveProgress->setValue(progress);
+    Q_UNUSED(progress);
+//    ui->transmitProgress->setValue(progress);
 }
 
-void ui_ymodem::transmitStatus(Ymodem::Status status)
+void ui_costum_tran::receiveProgress(int progress)
+{
+    Q_UNUSED(progress);
+//    ui->receiveProgress->setValue(progress);
+}
+
+void ui_costum_tran::transmitStatus(CostumTran::Status status)
 {
     switch(status)
     {
-        case YmodemFileTransmit::StatusEstablish:
+        case CostumTranTransmit::StatusEstablish:
         {
             ui->tx_firmware_msg->append(QStringLiteral("-->[info ] 与设备握手成功"));
             break;
         }
 
-        case YmodemFileTransmit::StatusTransmit:
+        case CostumTranTransmit::StatusTransmit:
         {
             //ui->tx_firmware_msg->append("-->[info ] 正在发送。。。。");
             break;
         }
 
-        case YmodemFileTransmit::StatusFinish:
+        case CostumTranTransmit::StatusFinish:
         {
             transmitButtonStatus = false;
             ui->tx_firmware_msg->append(QStringLiteral("-->[info ] 固件升级成功"));
@@ -195,20 +240,21 @@ void ui_ymodem::transmitStatus(Ymodem::Status status)
 
             ui->receiveBrowse->setEnabled(true);
 
+            ui->receivePath->setText("place holder");
             if(ui->receivePath->text().isEmpty() != true)
             {
-                ui->receiveButton->setEnabled(true);
+                ui->pushButtonExportAlarmData->setEnabled(true);
             }
 
             ui->transmitBrowse->setEnabled(true);
-            ui->transmitButton->setText(QStringLiteral("发送"));
+            ui->pushButtonExportHistoricalData->setText(tr("Start"));
 
             QMessageBox::warning(this, u8"成功", u8"文件发送成功！", u8"关闭");
 
             break;
         }
 
-        case YmodemFileTransmit::StatusAbort:
+        case CostumTranTransmit::StatusAbort:
         {
             transmitButtonStatus = false;
             ui->tx_firmware_msg->append(QStringLiteral("-->[info ] 升级被用户取消"));
@@ -216,20 +262,21 @@ void ui_ymodem::transmitStatus(Ymodem::Status status)
 
             ui->receiveBrowse->setEnabled(true);
 
+            ui->receivePath->setText("place holder");
             if(ui->receivePath->text().isEmpty() != true)
             {
-                ui->receiveButton->setEnabled(true);
+                ui->pushButtonExportAlarmData->setEnabled(true);
             }
 
             ui->transmitBrowse->setEnabled(true);
-            ui->transmitButton->setText(QStringLiteral("发送"));
+            ui->pushButtonExportHistoricalData->setText(tr("Start"));
 
-            QMessageBox::warning(this, u8"失败", u8"文件发送失败！", u8"关闭");
+            QMessageBox::warning(this, QStringLiteral("失败"), QStringLiteral("文件发送失败！"), QStringLiteral("关闭"));
 
             break;
         }
 
-        case YmodemFileTransmit::StatusTimeout:
+        case CostumTranTransmit::StatusTimeout:
         {
             transmitButtonStatus = false;
              ui->tx_firmware_msg->append(QStringLiteral("-->[info ] 和设备链接超时"));
@@ -237,13 +284,14 @@ void ui_ymodem::transmitStatus(Ymodem::Status status)
 
             ui->receiveBrowse->setEnabled(true);
 
+            ui->receivePath->setText("place holder");
             if(ui->receivePath->text().isEmpty() != true)
             {
-                ui->receiveButton->setEnabled(true);
+                ui->pushButtonExportAlarmData->setEnabled(true);
             }
 
             ui->transmitBrowse->setEnabled(true);
-            ui->transmitButton->setText(QStringLiteral("发送"));
+            ui->pushButtonExportHistoricalData->setText(tr("Start"));
 
             QMessageBox::warning(this, u8"失败", u8"文件发送失败！", u8"关闭");
 
@@ -258,34 +306,35 @@ void ui_ymodem::transmitStatus(Ymodem::Status status)
 
             ui->receiveBrowse->setEnabled(true);
 
+            ui->receivePath->setText("place holder");
             if(ui->receivePath->text().isEmpty() != true)
             {
-                ui->receiveButton->setEnabled(true);
+                ui->pushButtonExportAlarmData->setEnabled(true);
             }
 
             ui->transmitBrowse->setEnabled(true);
-            ui->transmitButton->setText(QStringLiteral("发送"));
+            ui->pushButtonExportHistoricalData->setText(tr("Start"));
 
             QMessageBox::warning(this, u8"失败", u8"文件发送失败！", u8"关闭");
         }
     }
 }
 
-void ui_ymodem::receiveStatus(YmodemFileReceive::Status status)
+void ui_costum_tran::receiveStatus(CostumTranReceive::Status status)
 {
     switch(status)
     {
-        case YmodemFileReceive::StatusEstablish:
+        case CostumTranReceive::StatusEstablish:
         {
             break;
         }
 
-        case YmodemFileReceive::StatusTransmit:
+        case CostumTranReceive::StatusTransmit:
         {
             break;
         }
 
-        case YmodemFileReceive::StatusFinish:
+        case CostumTranReceive::StatusFinish:
         {
             receiveButtonStatus = false;
 
@@ -293,57 +342,67 @@ void ui_ymodem::receiveStatus(YmodemFileReceive::Status status)
 
             ui->transmitBrowse->setEnabled(true);
 
+            ui->transmitPath->setText("place holder");
             if(ui->transmitPath->text().isEmpty() != true)
             {
-                ui->transmitButton->setEnabled(true);
+                ui->pushButtonExportHistoricalData->setEnabled(true);
             }
 
             ui->receiveBrowse->setEnabled(true);
-            ui->receiveButton->setText(QStringLiteral("接收"));
+            ui->pushButtonExportAlarmData->setText(tr("Start"));
 
             QMessageBox::warning(this, QStringLiteral("成功"), QStringLiteral("文件接收成功！"), QStringLiteral("关闭"));
 
             break;
         }
 
-        case YmodemFileReceive::StatusAbort:
+        case CostumTranReceive::StatusAbort:
         {
             receiveButtonStatus = false;
+            transmitButtonStatus = false;
 
            // ui->comButton->setEnabled(true);
 
             ui->transmitBrowse->setEnabled(true);
 
+            ui->transmitPath->setText("place holder");
             if(ui->transmitPath->text().isEmpty() != true)
             {
-                ui->transmitButton->setEnabled(true);
+                ui->pushButtonExportHistoricalData->setEnabled(true);
             }
 
             ui->receiveBrowse->setEnabled(true);
-            ui->receiveButton->setText(QStringLiteral("接收"));
+            ui->pushButtonExportAlarmData->setText(tr("Start"));
+            ui->pushButtonExportAlarmData->setEnabled(true);
+            ui->pushButtonExportHistoricalData->setText(tr("Start"));
 
-            QMessageBox::warning(this, QStringLiteral("失败"), QStringLiteral("文件接收失败！"), QStringLiteral("关闭"));
-
+            emit reportStatus(QString("%1 CLOSED").arg(costumTranReceive->genPortSummary().split('\40').at(0)), false);
+            QMessageBox::information(this, tr("Export"), tr("Data Export Canceled."), tr("Close"));
             break;
         }
 
-        case YmodemFileReceive::StatusTimeout:
+        case CostumTranReceive::StatusTimeout:
         {
             receiveButtonStatus = false;
+            transmitButtonStatus = false;
 
             //ui->comButton->setEnabled(true);
 
             ui->transmitBrowse->setEnabled(true);
 
+            ui->transmitPath->setText("place holder");
             if(ui->transmitPath->text().isEmpty() != true)
             {
-                ui->transmitButton->setEnabled(true);
+                ui->pushButtonExportHistoricalData->setEnabled(true);
             }
 
             ui->receiveBrowse->setEnabled(true);
-            ui->receiveButton->setText(QStringLiteral("接收"));
+            ui->pushButtonExportAlarmData->setText(tr("Start"));
+            ui->pushButtonExportAlarmData->setEnabled(true);
+            ui->pushButtonExportHistoricalData->setText(tr("Start"));
 
-            QMessageBox::warning(this, QStringLiteral("失败"), QStringLiteral("文件接收失败！"), QStringLiteral("关闭"));
+            emit reportStatus(QString("%1 CLOSED").arg(costumTranReceive->genPortSummary().split('\40').at(0)), false);
+            QMessageBox::information(this, tr("Export"), tr("Communication Time Out, Export Finished."), tr("Close"));
 
             break;
         }
@@ -356,25 +415,26 @@ void ui_ymodem::receiveStatus(YmodemFileReceive::Status status)
 
             ui->transmitBrowse->setEnabled(true);
 
+            ui->transmitPath->setText("place holder");
             if(ui->transmitPath->text().isEmpty() != true)
             {
-                ui->transmitButton->setEnabled(true);
+                ui->pushButtonExportHistoricalData->setEnabled(true);
             }
 
             ui->receiveBrowse->setEnabled(true);
-            ui->receiveButton->setText(QStringLiteral("接收"));
+            ui->pushButtonExportAlarmData->setText(tr("Start"));
 
             QMessageBox::warning(this, QStringLiteral("失败"), QStringLiteral("文件接收失败！"), QStringLiteral("关闭"));
         }
     }
 }
 
-void ui_ymodem::on_btn_find_seriaport_clicked()
+void ui_costum_tran::on_btn_find_seriaport_clicked()
 {
     Find_SerialPort();
 }
 
-void ui_ymodem::Find_SerialPort()
+void ui_costum_tran::Find_SerialPort()
 {
     const auto infos = QSerialPortInfo::availablePorts();
     ui->cbx_com_name->clear();
@@ -390,7 +450,7 @@ void ui_ymodem::Find_SerialPort()
     }
 }
 
-QSerialPort::StopBits ui_ymodem::to_convert_stopbit(QString  bit)
+QSerialPort::StopBits ui_costum_tran::to_convert_stopbit(QString  bit)
 {
    if(bit == tr("1"))
        return QSerialPort::OneStop;
@@ -401,7 +461,7 @@ QSerialPort::StopBits ui_ymodem::to_convert_stopbit(QString  bit)
    return QSerialPort::OneStop;
 }
 
-QSerialPort::DataBits ui_ymodem::to_convert_databit(QString  bit)
+QSerialPort::DataBits ui_costum_tran::to_convert_databit(QString  bit)
 {
    if(bit == tr("8"))
        return QSerialPort::Data8;
@@ -418,7 +478,7 @@ QSerialPort::DataBits ui_ymodem::to_convert_databit(QString  bit)
 
 }
 
-QSerialPort::Parity ui_ymodem::to_convert_paritybit(QString  bit)
+QSerialPort::Parity ui_costum_tran::to_convert_paritybit(QString  bit)
 {
    if(bit == tr("None"))
        return QSerialPort::NoParity;
@@ -430,7 +490,7 @@ QSerialPort::Parity ui_ymodem::to_convert_paritybit(QString  bit)
 
 }
 
-void ui_ymodem::on_btn_open_port_clicked()
+void ui_costum_tran::on_btn_open_port_clicked()
 {
     static bool button_status = false;
 
@@ -463,12 +523,12 @@ void ui_ymodem::on_btn_open_port_clicked()
 
            if(ui->transmitPath->text().isEmpty() != true)
            {
-               ui->transmitButton->setEnabled(true);
+               ui->pushButtonExportHistoricalData->setEnabled(true);
            }
 
            if(ui->receivePath->text().isEmpty() != true)
            {
-               ui->receiveButton->setEnabled(true);
+               ui->pushButtonExportAlarmData->setEnabled(true);
            }
        }
        else
@@ -494,35 +554,21 @@ void ui_ymodem::on_btn_open_port_clicked()
        ui->btn_find_seriaport->setEnabled(true);
 
        ui->transmitBrowse->setDisabled(true);
-      // ui->transmitButton->setDisabled(true);
+      // ui->pushButtonExportHistoricalData->setDisabled(true);
 
        ui->receiveBrowse->setDisabled(true);
-       //ui->receiveButton->setDisabled(true);
+       //ui->pushButtonExportAlarmData->setDisabled(true);
    }
 }
 
-void ui_ymodem::on_btn_start_update_clicked()
-{
-    ui->tx_firmware_msg->append(QStringLiteral("-->[info ] 等待重新启动设备升级程序"));
-#if QT_MAJOR_VERSION > 4
-    // disconnect(serialPort, &QSerialPort::readyRead, this, &MainWindow::ReadData);// 断开调试的槽函数
-   connect(serialPort, &QSerialPort::readyRead, this, &ui_ymodem::ReadData);// 连接固件升级的槽函数
-#else
-   connect(serialPort, SIGNAL(readyRead()), this, SLOT(ReadData()));
-#endif
-
-   //ymodem_signel(ui_ymodem::Statusupdatebtnclick); // 传递信号给父容器处理
-   timer->start(100);
-   ui->btn_start_update->setEnabled(false);
-}
-void ui_ymodem::ss_timer_irq()
+void ui_costum_tran::ss_timer_irq()
 {
     if ((serialPort->isOpen() == false))
     {
         ui->tx_firmware_msg->append(QStringLiteral("-->[error]检查串口是否被打开"));
         if(timer->isActive()){
           timer->stop();
-          ui->btn_start_update->setEnabled(true);
+//          ui->btn_start_update->setEnabled(true);
         }
        return ;
     }
@@ -530,12 +576,12 @@ void ui_ymodem::ss_timer_irq()
     serialPort->write("S");
 }
 
-void ui_ymodem::show_received(QString msg)
+void ui_costum_tran::show_received(QString msg)
 {
     ui->tx_firmware_msg->append(QString("receive: ") + msg);
 }
 
-void ui_ymodem::show_sent(QString msg)
+void ui_costum_tran::show_sent(QString msg)
 {
     ui->tx_firmware_msg->append(QString("sent   : ") + msg);
 }
