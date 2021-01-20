@@ -57,6 +57,10 @@ private:
     YmodemFileReceive *ymodemFileReceive;
     bool transmitButtonStatus;
     bool receiveButtonStatus;
+
+    void showRecvStatus(Ymodem::Status status);
+    void showTranStatus(Ymodem::Status status);
+
    // void ymodem_start_transmit();
     void Find_SerialPort();
     QSerialPort::StopBits to_convert_stopbit(QString bit);

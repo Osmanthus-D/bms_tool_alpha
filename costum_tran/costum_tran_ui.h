@@ -65,7 +65,7 @@ private:
     bool receiveButtonStatus;
     CostumTran::Mode mode;
 
-    void showRecvStatus(Status status);
+    void showRecvStatus(CostumTran::Status status);
 
     QSerialPort::StopBits to_convert_stopbit(QString bit);
     QSerialPort::DataBits to_convert_databit(QString  bit);

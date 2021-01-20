@@ -198,6 +198,41 @@ void ui_ymodem::receiveProgress(int progress)
     ui->receiveProgress->setValue(progress);
 }
 
+void ui_ymodem::showTranStatus(Ymodem::Status status)
+{
+    switch(status)
+    {
+        case Ymodem::StatusEstablish:
+        {
+            break;
+        }
+        case Ymodem::StatusTransmit:
+        {
+            break;
+        }
+        case Ymodem::StatusFinish:
+        {
+            QMessageBox::warning(this, tr("Update"), tr("Firmware Update Successful."), tr("Close"));
+            break;
+        }
+        case Ymodem::StatusAbort:
+        {
+            QMessageBox::warning(this, tr("Update"), tr("Firmware Update Cancelled."), tr("Close"));
+            break;
+        }
+        case Ymodem::StatusTimeout:
+        {
+            QMessageBox::warning(this, tr("Update"), tr("Firmware Update Time Out."), ("Close"));
+            break;
+        }
+        default:
+        {
+            QMessageBox::warning(this, tr("Update"), tr("Firmware Update Failed."), tr("Close"));
+            break;
+        }
+    }
+}
+
 void ui_ymodem::transmitStatus(Ymodem::Status status)
 {
     switch(status)
@@ -230,8 +265,6 @@ void ui_ymodem::transmitStatus(Ymodem::Status status)
             ui->transmitBrowse->setEnabled(true);
             ui->transmitButton->setText(tr("Transmit"));
 
-            QMessageBox::warning(this, tr("Update"), tr("Firmware Update Successful."), tr("Close"));
-
             break;
         }
 
@@ -250,8 +283,6 @@ void ui_ymodem::transmitStatus(Ymodem::Status status)
 
             ui->transmitBrowse->setEnabled(true);
             ui->transmitButton->setText(tr("Transmit"));
-
-            QMessageBox::warning(this, tr("Update"), tr("Firmware Update Cancelled."), tr("Close"));
 
             break;
         }
@@ -272,8 +303,6 @@ void ui_ymodem::transmitStatus(Ymodem::Status status)
             ui->transmitBrowse->setEnabled(true);
             ui->transmitButton->setText(tr("Transmit"));
 
-            QMessageBox::warning(this, tr("Update"), tr("Firmware Update Time Out."), ("Close"));
-
             break;
         }
 
@@ -292,8 +321,43 @@ void ui_ymodem::transmitStatus(Ymodem::Status status)
 
             ui->transmitBrowse->setEnabled(true);
             ui->transmitButton->setText(tr("Transmit"));
+        }
+    }
 
-            QMessageBox::warning(this, tr("Update"), tr("Firmware Update Failed."), tr("Close"));
+    showTranStatus(status);
+}
+
+void ui_ymodem::showRecvStatus(Ymodem::Status status)
+{
+    switch(status)
+    {
+        case Ymodem::StatusEstablish:
+        {
+            break;
+        }
+        case Ymodem::StatusTransmit:
+        {
+            break;
+        }
+        case Ymodem::StatusFinish:
+        {
+            QMessageBox::warning(this, tr("Update"), tr("File Received Successfully."), tr("Close"));
+            break;
+        }
+        case Ymodem::StatusAbort:
+        {
+            QMessageBox::warning(this, tr("Update"), tr("File Receiving Cancelled."), tr("Close"));
+            break;
+        }
+        case Ymodem::StatusTimeout:
+        {
+            QMessageBox::warning(this, tr("Update"), tr("File Receiving Time Out."), tr("Close"));
+            break;
+        }
+        default:
+        {
+            QMessageBox::warning(this, tr("Update"), tr("File Received Failed."), tr("Closed"));
+            break;
         }
     }
 }
@@ -328,8 +392,6 @@ void ui_ymodem::receiveStatus(YmodemFileReceive::Status status)
             ui->receiveBrowse->setEnabled(true);
             ui->receiveButton->setText(tr("Receive"));
 
-            QMessageBox::warning(this, tr("Update"), tr("File Received Successfully."), tr("Close"));
-
             break;
         }
 
@@ -348,8 +410,6 @@ void ui_ymodem::receiveStatus(YmodemFileReceive::Status status)
 
             ui->receiveBrowse->setEnabled(true);
             ui->receiveButton->setText(tr("Receive"));
-
-            QMessageBox::warning(this, tr("Update"), tr("File Receiving Cancelled."), tr("Close"));
 
             break;
         }
@@ -370,8 +430,6 @@ void ui_ymodem::receiveStatus(YmodemFileReceive::Status status)
             ui->receiveBrowse->setEnabled(true);
             ui->receiveButton->setText(tr("Receive"));
 
-            QMessageBox::warning(this, tr("Update"), tr("File Receiving Time Out."), tr("Close"));
-
             break;
         }
 
@@ -390,10 +448,10 @@ void ui_ymodem::receiveStatus(YmodemFileReceive::Status status)
 
             ui->receiveBrowse->setEnabled(true);
             ui->receiveButton->setText(tr("Receive"));
-
-            QMessageBox::warning(this, tr("Update"), tr("File Received Failed."), tr("Closed"));
         }
     }
+
+    showRecvStatus(status);
 }
 
 void ui_ymodem::Find_SerialPort()

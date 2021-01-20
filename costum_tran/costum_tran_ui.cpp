@@ -302,7 +302,7 @@ void ui_costum_tran::transmitStatus(CostumTran::Status status)
     }
 }
 
-void ui_costum_tran::showRecvStatus(Status status)
+void ui_costum_tran::showRecvStatus(CostumTran::Status status)
 {
     switch (status)
     {
