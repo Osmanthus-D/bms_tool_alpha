@@ -7,19 +7,17 @@ YmodemFileReceive::YmodemFileReceive(QObject *parent) :
     QObject(parent),
     file(new QFile),
     readTimer(new QTimer),
-    writeTimer(new QTimer),
-    serialPort(new QSerialPort)
+    writeTimer(new QTimer)
 {
     setTimeDivide(499);
     setTimeMax(5);
     setErrorMax(999);
 
-    serialPort->setPortName("COM1");
-    serialPort->setBaudRate(115200);
-    serialPort->setDataBits(QSerialPort::Data8);
-    serialPort->setStopBits(QSerialPort::OneStop);
-    serialPort->setParity(QSerialPort::NoParity);
-    serialPort->setFlowControl(QSerialPort::NoFlowControl);
+    // restore serial port properties set last time
+    if(!initPort())
+    {
+        qDebug("%s serial port init failed.", __func__);
+    }
 
     connect(readTimer, SIGNAL(timeout()), this, SLOT(readTimeOut()));
     connect(writeTimer, SIGNAL(timeout()), this, SLOT(writeTimeOut()));
@@ -30,7 +28,10 @@ YmodemFileReceive::~YmodemFileReceive()
     delete file;
     delete readTimer;
     delete writeTimer;
-    delete serialPort;
+    if(serialPort->isOpen()) {
+        serialPort->close();
+        qDebug("%s closed", qPrintable(portName()));
+    }
 }
 
 void YmodemFileReceive::setFilePath(const QString &path)
@@ -38,14 +39,12 @@ void YmodemFileReceive::setFilePath(const QString &path)
     filePath = path + "/";
 }
 
-void YmodemFileReceive::setPortName(const QString &name)
+void YmodemFileReceive::updateSerialPort(QSerialPort *port)
 {
-    serialPort->setPortName(name);
-}
-
-void YmodemFileReceive::setPortBaudRate(qint32 baudrate)
-{
-    serialPort->setBaudRate(baudrate);
+    if(!setPort(port))
+    {
+        qDebug("%s set serial port failed.", __func__);
+    }
 }
 
 bool YmodemFileReceive::startReceive()
@@ -99,6 +98,7 @@ void YmodemFileReceive::writeTimeOut()
 {
     writeTimer->stop();
     serialPort->close();
+    qDebug("%s closed", qPrintable(portName()));
     receiveStatus(status);
 }
 

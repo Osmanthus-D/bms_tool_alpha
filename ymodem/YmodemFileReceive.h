@@ -1,13 +1,14 @@
 #ifndef YMODEMFILERECEIVE_H
 #define YMODEMFILERECEIVE_H
 
+#include <QObject>
 #include <QFile>
 #include <QTimer>
-#include <QObject>
 #include <QSerialPort>
+#include "serialporthelper.h"
 #include "Ymodem.h"
 
-class YmodemFileReceive : public QObject, public Ymodem
+class YmodemFileReceive : public QObject, public Ymodem, public SerialPortHelper
 {
     Q_OBJECT
 
@@ -17,14 +18,14 @@ public:
 
     void setFilePath(const QString &path);
 
-    void setPortName(const QString &name);
-    void setPortBaudRate(qint32 baudrate);
-
     bool startReceive();
     void stopReceive();
 
     int getReceiveProgress();
     Status getReceiveStatus();
+
+public slots:
+    void updateSerialPort(QSerialPort *port);
 
 signals:
     void receiveProgress(int progress);
@@ -45,7 +46,6 @@ private:
     QFile       *file;
     QTimer      *readTimer;
     QTimer      *writeTimer;
-    QSerialPort *serialPort;
 
     int      progress;
     Status   status;

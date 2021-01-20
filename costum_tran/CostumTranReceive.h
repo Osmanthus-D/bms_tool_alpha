@@ -6,9 +6,9 @@
 #include <QObject>
 #include <QSerialPort>
 #include "CostumTran.h"
-#include "preference.h"
+#include "serialporthelper.h"
 
-class CostumTranReceive : public QObject, public CostumTran
+class CostumTranReceive : public QObject, public CostumTran, public SerialPortHelper
 {
     Q_OBJECT
 
@@ -16,20 +16,16 @@ public:
     explicit CostumTranReceive(QObject *parent = 0);
     ~CostumTranReceive();
 
-    QString genPortSummary() const;
     void setFilePath(const QString &path);
-
-    void setPortName(const QString &name);
-    void setPortBaudRate(qint32 baudrate);
-    bool openPort();
-    void closePort();
 
     bool startReceive();
     void stopReceive();
 
     int getReceiveProgress();
     Status getReceiveStatus();
-    void setPort(QSerialPort *port);
+
+public slots:
+    void updateSerialPort(QSerialPort *port);
 
 signals:
     void receiveProgress(int progress);
@@ -43,7 +39,6 @@ private slots:
 
 private:
     Code callback(Status status, uint8_t *buff, uint32_t *len);
-    bool initSerialPort();
 
     uint32_t read(uint8_t *buff, uint32_t len);
     uint32_t write(uint8_t *buff, uint32_t len);
@@ -51,8 +46,6 @@ private:
     QFile       *file;
     QTimer      *readTimer;
     QTimer      *writeTimer;
-    QSerialPort *serialPort;
-    Preference  *pref;
 
     int      progress;
     Status   status;

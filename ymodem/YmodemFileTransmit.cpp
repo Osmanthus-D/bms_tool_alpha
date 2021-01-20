@@ -8,19 +8,17 @@ YmodemFileTransmit::YmodemFileTransmit(QObject *parent) :
     QObject(parent),
     file(new QFile),
     readTimer(new QTimer),
-    writeTimer(new QTimer),
-    serialPort(new QSerialPort)
+    writeTimer(new QTimer)
 {
     setTimeDivide(499);
     setTimeMax(5);
     setErrorMax(999);
 
-    serialPort->setPortName("COM1");
-    serialPort->setBaudRate(115200);
-    serialPort->setDataBits(QSerialPort::Data8);
-    serialPort->setStopBits(QSerialPort::OneStop);
-    serialPort->setParity(QSerialPort::NoParity);
-    serialPort->setFlowControl(QSerialPort::NoFlowControl);
+    // restore serial port properties set last time
+    if(!initPort())
+    {
+        qDebug("%s serial port init failed.", __func__);
+    }
 
     connect(readTimer, SIGNAL(timeout()), this, SLOT(readTimeOut()));
     connect(writeTimer, SIGNAL(timeout()), this, SLOT(writeTimeOut()));
@@ -31,7 +29,10 @@ YmodemFileTransmit::~YmodemFileTransmit()
     delete file;
     delete readTimer;
     delete writeTimer;
-    delete serialPort;
+    if(serialPort->isOpen()) {
+        serialPort->close();
+        qDebug("%s close", qPrintable(portName()));
+    }
 }
 
 void YmodemFileTransmit::setFileName(const QString &name)
@@ -39,20 +40,13 @@ void YmodemFileTransmit::setFileName(const QString &name)
     file->setFileName(name);
 }
 
-void YmodemFileTransmit::setPort(QSerialPort * ss)
+void YmodemFileTransmit::updateSerialPort(QSerialPort *port)
 {
-    this->serialPort = ss;
+    if(!setPort(port))
+    {
+        qDebug("%s set serial port failed.", __func__);
+    }
 }
-
-//void YmodemFileTransmit::setPortName(const QString &name)
-//{
-//    serialPort->setPortName(name);
-//}
-
-//void YmodemFileTransmit::setPortBaudRate(qint32 baudrate)
-//{
-//    serialPort->setBaudRate(baudrate);
-//}
 
 bool YmodemFileTransmit::startTransmit()
 {
@@ -105,6 +99,7 @@ void YmodemFileTransmit::writeTimeOut()
 {
     writeTimer->stop();
     serialPort->close();
+    qDebug("%s closed", qPrintable(portName()));
     transmitStatus(status);
 }
 

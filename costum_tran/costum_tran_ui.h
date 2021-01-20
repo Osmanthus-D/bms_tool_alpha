@@ -1,17 +1,18 @@
 #ifndef UI_COSTUM_TRAN_H
 #define UI_COSTUM_TRAN_H
-#include "CostumTranTransmit.h"
-#include "CostumTranReceive.h"
-#include <QSerialPort>
-#include <QDateTime>
 
 #include <QWidget>
+#include <QSerialPort>
+#include <QDateTime>
+#include "serialporthelper.h"
+#include "CostumTranTransmit.h"
+#include "CostumTranReceive.h"
 
 namespace Ui {
 class ui_costum_tran;
 }
 
-class ui_costum_tran : public QWidget
+class ui_costum_tran : public QWidget, public SerialPortHelper
 {
     Q_OBJECT
 
@@ -32,9 +33,10 @@ public:
 signals:
     void ymodem_signel(ui_costum_tran::Status status);
     void reportStatus(QString tip, bool ok, const QString & module = "EXPORT");
+    void serialPortUpdated(QSerialPort *port);
 
 public slots:
-    void setPort(QSerialPort *port);
+    void updateSerialPort(QSerialPort *port);
 
 private slots:
     //void on_btn_start_update_clicked();
@@ -46,25 +48,17 @@ private slots:
     void ReadData();
     void ss_timer_irq();
     void on_receiveBrowse_clicked();
-
     void on_pushButtonExportHistoricalData_clicked();
-
     void on_pushButtonExportAlarmData_clicked();
-
     void on_btn_find_seriaport_clicked();
-
     void on_btn_open_port_clicked();
-
     void show_received(QString msg);
-
     void show_sent(QString msg);
-
     void startRecv();
 
 private:
     Ui::ui_costum_tran *ui;
     QTimer *timer;
-    QSerialPort *serialPort;
     CostumTranTransmit *costumTranTransmit;
     CostumTranReceive *costumTranReceive;
     bool transmitButtonStatus;

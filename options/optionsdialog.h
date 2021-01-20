@@ -25,7 +25,7 @@ public:
     void listAvailiablePorts();
 
 signals:
-    void updateSerialPort(QSerialPort *serialport);
+    void serialPortUpdated(QSerialPort *serialport);
 
 private slots:
     void updateOptions(int result);

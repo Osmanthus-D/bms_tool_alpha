@@ -49,7 +49,8 @@ Widget::Widget(QWidget *parent) :
     ui->tabWidget->addTab(ymodem, QIcon(":/img/update.png"), tr("&Update"));
 
     connect(optionsDlg, SIGNAL(accepted()), this, SLOT(dispOptionsChanged()));
-    connect(optionsDlg, SIGNAL(updateSerialPort(QSerialPort *)), costumTran, SLOT(setPort(QSerialPort *)));
+    connect(optionsDlg, SIGNAL(serialPortUpdated(QSerialPort *)), costumTran, SLOT(updateSerialPort(QSerialPort *)));
+    connect(optionsDlg, SIGNAL(serialPortUpdated(QSerialPort *)), ymodem, SLOT(updateSerialPort(QSerialPort *)));
     connect(infoDisplay, SIGNAL(reportStatus(QString, bool, const QString &)), this, SLOT(statusChanged(QString, bool, const QString &)));
     connect(costumTran, SIGNAL(reportStatus(QString, bool, const QString &)), this, SLOT(statusChanged(QString, bool, const QString &)));
     connect(ymodem, SIGNAL(reportStatus(QString, bool, const QString &)), this, SLOT(statusChanged(QString, bool, const QString &)));

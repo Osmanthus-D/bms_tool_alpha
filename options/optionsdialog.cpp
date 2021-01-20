@@ -158,7 +158,7 @@ void OptionsDialog::updateOptions(int result)
         serialPort->setStopBits((QSerialPort::StopBits)value);
         pref->setStopBits(ui->comboBoxStopBits->itemData(index).toInt());
 
-        emit updateSerialPort(serialPort);
+        emit serialPortUpdated(serialPort);
 
         // tab display
         pref->setCoreNum(ui->comboBoxCoreNum->currentText().toInt());

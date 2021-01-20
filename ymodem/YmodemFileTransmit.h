@@ -1,13 +1,14 @@
 #ifndef YMODEMFILETRANSMIT_H
 #define YMODEMFILETRANSMIT_H
 
+#include <QObject>
 #include <QFile>
 #include <QTimer>
-#include <QObject>
 #include <QSerialPort>
+#include "serialporthelper.h"
 #include "Ymodem.h"
 
-class YmodemFileTransmit : public QObject, public Ymodem
+class YmodemFileTransmit : public QObject, public Ymodem, public SerialPortHelper
 {
     Q_OBJECT
 
@@ -16,15 +17,15 @@ public:
     ~YmodemFileTransmit();
 
     void setFileName(const QString &name);
-    void setPort(QSerialPort * ss);
-   // void setPortName(const QString &name);
-   // void setPortBaudRate(qint32 baudrate);
 
     bool startTransmit();
     void stopTransmit();
 
     int getTransmitProgress();
     Status getTransmitStatus();
+
+public slots:
+    void updateSerialPort(QSerialPort *port);
 
 signals:
     void transmitProgress(int progress);
@@ -43,7 +44,6 @@ private:
     QFile       *file;
     QTimer      *readTimer;
     QTimer      *writeTimer;
-    QSerialPort *serialPort;
 
     int      progress;
     Status   status;

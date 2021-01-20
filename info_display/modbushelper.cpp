@@ -30,6 +30,7 @@ void ModbusHelper::rtuRead()
 
         ret = modbus_read_registers(mb, MODBUS_DEVICE_ID_ADDR, MODBUS_DEVICE_ID_LEN,
                                     (quint16 *)(buffer + MODBUS_COILS_READ_LEN + MODBUS_REGISTERS_READ_LEN * 2));
+
         Q_UNUSED(ret)
 
         emit refreshCorePortectSig(buffer);

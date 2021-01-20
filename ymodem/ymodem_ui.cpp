@@ -9,7 +9,6 @@
 ui_ymodem::ui_ymodem(QWidget *parent) :
     QWidget(parent),
     ui(new Ui::ui_ymodem),
-    serialPort(new QSerialPort),
     ymodemFileTransmit(new YmodemFileTransmit),
     ymodemFileReceive(new YmodemFileReceive)
 {
@@ -19,6 +18,13 @@ ui_ymodem::ui_ymodem(QWidget *parent) :
     ui->setupUi(this);
     ui->groupBox->setVisible(false);
 //    Find_SerialPort();
+
+    // restore serial port properties set last time
+    if(!initPort())
+    {
+        qDebug("%s serial port init failed.", __func__);
+    }
+
     timer = new QTimer();
     connect(ymodemFileTransmit, SIGNAL(transmitProgress(int)), this, SLOT(transmitProgress(int)));
     connect(ymodemFileReceive, SIGNAL(receiveProgress(int)), this, SLOT(receiveProgress(int)));
@@ -28,13 +34,15 @@ ui_ymodem::ui_ymodem(QWidget *parent) :
     connect(ymodemFileReceive, SIGNAL(sendReceived(QString)), this, SLOT(show_received(QString)));
     connect(ymodemFileReceive, SIGNAL(sendSent(QString)), this, SLOT(show_sent(QString)));
 
+    connect(this, SIGNAL(serialPortUpdated(QSerialPort *)), ymodemFileReceive, SLOT(updateSerialPort(QSerialPort *)));
+    connect(this, SIGNAL(serialPortUpdated(QSerialPort *)), ymodemFileReceive, SLOT(updateSerialPort(QSerialPort *)));
+
     connect(timer,SIGNAL(timeout()),this,SLOT(ss_timer_irq()));
 }
 
 ui_ymodem::~ui_ymodem()
 {
     delete ui;
-    delete serialPort;
     delete ymodemFileTransmit;
     delete ymodemFileReceive;
 }
@@ -61,6 +69,18 @@ void ui_ymodem::ReadData()
            }
        }
        buf.clear();
+}
+
+void ui_ymodem::updateSerialPort(QSerialPort *port)
+{
+    if(!setPort(port))
+    {
+        qDebug("%s set serial port failed.", __func__);
+    }
+    else
+    {
+        emit serialPortUpdated(port);
+    }
 }
 
 void ui_ymodem::on_transmitBrowse_clicked()
@@ -93,15 +113,11 @@ void ui_ymodem::on_receiveBrowse_clicked()
 
 void ui_ymodem::on_transmitButton_clicked()
 {
-    qDebug() << __func__ << transmitButtonStatus;
     if(transmitButtonStatus == false)
     {
         serialPort->close();
 
         ymodemFileTransmit->setFileName(ui->transmitPath->text());
-        ymodemFileTransmit->setPort(this->serialPort);
-        //ymodemFileTransmit->setPortName(this->serialPort->);
-       // ymodemFileTransmit->setPortBaudRate(ui->comBaudRate->currentText().toInt());
 
         if(ymodemFileTransmit->startTransmit() == true)
         {
@@ -115,6 +131,10 @@ void ui_ymodem::on_transmitButton_clicked()
             ui->transmitBrowse->setDisabled(true);
             ui->transmitButton->setText(QStringLiteral("取消"));
             ui->transmitProgress->setValue(0);
+
+            emit reportStatus(genPortSum(), true);
+            qDebug("%s(%s-%s-%s-%s) opened", qPrintable(list.at(0)), qPrintable(list.at(2)), qPrintable(list.at(3)),
+                   qPrintable(list.at(4).at(0)), qPrintable(list.at(5)));
         }
         else
         {
@@ -134,9 +154,6 @@ void ui_ymodem::on_receiveButton_clicked()
         serialPort->close();
 
         ymodemFileReceive->setFilePath(ui->receivePath->text());
-        ymodemFileReceive->setPortName(ui->cbx_com_name->currentText());
-        ymodemFileReceive->setPortBaudRate(ui->cbx_bandrate->currentText().toInt());
-
         if(ymodemFileReceive->startReceive() == true)
         {
             receiveButtonStatus = true;
@@ -149,6 +166,10 @@ void ui_ymodem::on_receiveButton_clicked()
             ui->receiveBrowse->setDisabled(true);
             ui->receiveButton->setText(QStringLiteral("取消"));
             ui->receiveProgress->setValue(0);
+
+            emit reportStatus(genPortSum(), true);
+            qDebug("%s(%s-%s-%s-%s) opened", qPrintable(list.at(0)), qPrintable(list.at(2)), qPrintable(list.at(3)),
+                   qPrintable(list.at(4).at(0)), qPrintable(list.at(5)));
         }
         else
         {
@@ -201,9 +222,9 @@ void ui_ymodem::transmitStatus(Ymodem::Status status)
             }
 
             ui->transmitBrowse->setEnabled(true);
-            ui->transmitButton->setText(QStringLiteral("发送"));
+            ui->transmitButton->setText(tr("Transmit"));
 
-            QMessageBox::warning(this, u8"成功", u8"文件发送成功！", u8"关闭");
+            QMessageBox::warning(this, tr("Update"), tr("Firmware Update Successful."), tr("Close"));
 
             break;
         }
@@ -222,9 +243,9 @@ void ui_ymodem::transmitStatus(Ymodem::Status status)
             }
 
             ui->transmitBrowse->setEnabled(true);
-            ui->transmitButton->setText(QStringLiteral("发送"));
+            ui->transmitButton->setText(tr("Transmit"));
 
-            QMessageBox::warning(this, u8"失败", u8"文件发送失败！", u8"关闭");
+            QMessageBox::warning(this, tr("Update"), tr("Firmware Update Cancelled."), tr("Close"));
 
             break;
         }
@@ -243,9 +264,9 @@ void ui_ymodem::transmitStatus(Ymodem::Status status)
             }
 
             ui->transmitBrowse->setEnabled(true);
-            ui->transmitButton->setText(QStringLiteral("发送"));
+            ui->transmitButton->setText(tr("Transmit"));
 
-            QMessageBox::warning(this, u8"失败", u8"文件发送失败！", u8"关闭");
+            QMessageBox::warning(this, tr("Update"), tr("Firmware Update Time Out."), ("Close"));
 
             break;
         }
@@ -264,9 +285,9 @@ void ui_ymodem::transmitStatus(Ymodem::Status status)
             }
 
             ui->transmitBrowse->setEnabled(true);
-            ui->transmitButton->setText(QStringLiteral("发送"));
+            ui->transmitButton->setText(tr("Transmit"));
 
-            QMessageBox::warning(this, u8"失败", u8"文件发送失败！", u8"关闭");
+            QMessageBox::warning(this, tr("Update"), tr("Firmware Update Failed."), tr("Close"));
         }
     }
 }
@@ -299,9 +320,9 @@ void ui_ymodem::receiveStatus(YmodemFileReceive::Status status)
             }
 
             ui->receiveBrowse->setEnabled(true);
-            ui->receiveButton->setText(QStringLiteral("接收"));
+            ui->receiveButton->setText(tr("Receive"));
 
-            QMessageBox::warning(this, QStringLiteral("成功"), QStringLiteral("文件接收成功！"), QStringLiteral("关闭"));
+            QMessageBox::warning(this, tr("Update"), tr("File Received Successfully."), tr("Close"));
 
             break;
         }
@@ -320,9 +341,9 @@ void ui_ymodem::receiveStatus(YmodemFileReceive::Status status)
             }
 
             ui->receiveBrowse->setEnabled(true);
-            ui->receiveButton->setText(QStringLiteral("接收"));
+            ui->receiveButton->setText(tr("Receive"));
 
-            QMessageBox::warning(this, QStringLiteral("失败"), QStringLiteral("文件接收失败！"), QStringLiteral("关闭"));
+            QMessageBox::warning(this, tr("Update"), tr("File Receiving Cancelled."), tr("Close"));
 
             break;
         }
@@ -341,9 +362,9 @@ void ui_ymodem::receiveStatus(YmodemFileReceive::Status status)
             }
 
             ui->receiveBrowse->setEnabled(true);
-            ui->receiveButton->setText(QStringLiteral("接收"));
+            ui->receiveButton->setText(tr("Receive"));
 
-            QMessageBox::warning(this, QStringLiteral("失败"), QStringLiteral("文件接收失败！"), QStringLiteral("关闭"));
+            QMessageBox::warning(this, tr("Update"), tr("File Receiving Time Out."), tr("Close"));
 
             break;
         }
@@ -362,9 +383,9 @@ void ui_ymodem::receiveStatus(YmodemFileReceive::Status status)
             }
 
             ui->receiveBrowse->setEnabled(true);
-            ui->receiveButton->setText(QStringLiteral("接收"));
+            ui->receiveButton->setText(tr("Receive"));
 
-            QMessageBox::warning(this, QStringLiteral("失败"), QStringLiteral("文件接收失败！"), QStringLiteral("关闭"));
+            QMessageBox::warning(this, tr("Update"), tr("File Received Failed."), tr("Closed"));
         }
     }
 }
@@ -434,16 +455,11 @@ void ui_ymodem::on_btn_open_port_clicked()
 {
     static bool button_status = false;
 
-   if(button_status == false)
-   {
-        serialPort->setPortName(ui->cbx_com_name->currentText());
+    if(button_status == false)
+    {
        if(serialPort->open(QSerialPort::ReadWrite) == true)
        {
            button_status = true;
-           serialPort->setBaudRate(ui->cbx_bandrate->currentText().toInt());
-           serialPort->setStopBits(to_convert_stopbit(ui->cbx_stopbit->currentText()));
-           serialPort->setDataBits(to_convert_databit(ui->cbx_databit->currentText()));
-           serialPort->setParity(to_convert_paritybit(ui->cbx_paritybit->currentText()));
            ui->btn_open_port->setText(QStringLiteral("关闭串口"));
            ui->cbx_bandrate->setEnabled(false);
            ui->cbx_stopbit->setEnabled(false);

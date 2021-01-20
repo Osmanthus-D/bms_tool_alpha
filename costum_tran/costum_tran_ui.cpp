@@ -9,7 +9,6 @@
 ui_costum_tran::ui_costum_tran(QWidget *parent) :
     QWidget(parent),
     ui(new Ui::ui_costum_tran),
-    serialPort(new QSerialPort),
     costumTranTransmit(new CostumTranTransmit),
     costumTranReceive(new CostumTranReceive)
 {
@@ -28,6 +27,7 @@ ui_costum_tran::ui_costum_tran(QWidget *parent) :
 
     connect(costumTranReceive, SIGNAL(sendReceived(QString)), this, SLOT(show_received(QString)));
     connect(costumTranReceive, SIGNAL(sendSent(QString)), this, SLOT(show_sent(QString)));
+    connect(this, SIGNAL(serialPortUpdated(QSerialPort *)), costumTranReceive, SLOT(updateSerialPort(QSerialPort *)));
 
     connect(timer,SIGNAL(timeout()),this,SLOT(ss_timer_irq()));
 
@@ -38,7 +38,6 @@ ui_costum_tran::ui_costum_tran(QWidget *parent) :
 ui_costum_tran::~ui_costum_tran()
 {
     delete ui;
-    delete serialPort;
     delete costumTranTransmit;
     delete costumTranReceive;
 }
@@ -67,34 +66,16 @@ void ui_costum_tran::ReadData()
        buf.clear();
 }
 
-void ui_costum_tran::setPort(QSerialPort *port)
+void ui_costum_tran::updateSerialPort(QSerialPort *port)
 {
-    serialPort->setPortName(port->portName());
-    if(!serialPort->setBaudRate(port->baudRate()))
+    if(!setPort(port))
     {
-        qDebug() << __func__ << "set baud rate failed";
-        return;
+        qDebug("%s set serial port failed.", __func__);
     }
-
-    if(!serialPort->setDataBits(port->dataBits()))
+    else
     {
-        qDebug() << __func__ << "set data bits failed";
-        return;
+        emit serialPortUpdated(port);
     }
-
-    if(!serialPort->setParity(port->parity()))
-    {
-        qDebug() << __func__ << "set parity failed";
-        return;
-    }
-
-    if(!serialPort->setStopBits(port->stopBits()))
-    {
-        qDebug() << __func__ << "set stop Bits failed";
-        return;
-    }
-
-    costumTranReceive->setPort(serialPort);
 }
 
 void ui_costum_tran::on_transmitBrowse_clicked()
@@ -129,9 +110,9 @@ void ui_costum_tran::on_pushButtonExportHistoricalData_clicked()
 {
     if(transmitButtonStatus == false)
     {
-        if(costumTranReceive->openPort())
+        if(openPort())
         {
-            costumTranReceive->closePort();
+            closePort();
             mode = CostumTran::RequestData;
             startRecv();
         }
@@ -150,9 +131,9 @@ void ui_costum_tran::on_pushButtonExportAlarmData_clicked()
 {
     if(receiveButtonStatus == false)
     {
-        if(costumTranReceive->openPort())
+        if(openPort())
         {
-            costumTranReceive->closePort();
+            closePort();
             mode = CostumTran::RequestAlarm;
             startRecv();
         }
@@ -169,7 +150,7 @@ void ui_costum_tran::on_pushButtonExportAlarmData_clicked()
 
 void ui_costum_tran::startRecv()
 {
-    QStringList list = costumTranReceive->genPortSummary().remove(',').split('\40');
+    QStringList list = genPortSum().remove(',').split('\40');
 
     costumTranReceive->setFilePath(ui->receivePath->text());
     costumTranReceive->setMode(mode);
@@ -194,7 +175,7 @@ void ui_costum_tran::startRecv()
             ui->pushButtonExportHistoricalData->setText(tr("Cancel"));
         }
 
-        emit reportStatus(costumTranReceive->genPortSummary(), true);
+        emit reportStatus(genPortSum(), true);
         qDebug("%s(%s-%s-%s-%s) opened", qPrintable(list.at(0)), qPrintable(list.at(2)), qPrintable(list.at(3)),
                qPrintable(list.at(4).at(0)), qPrintable(list.at(5)));
     }
@@ -351,7 +332,7 @@ void ui_costum_tran::receiveStatus(CostumTranReceive::Status status)
             ui->receiveBrowse->setEnabled(true);
             ui->pushButtonExportAlarmData->setText(tr("Start"));
 
-            QMessageBox::warning(this, QStringLiteral("成功"), QStringLiteral("文件接收成功！"), QStringLiteral("关闭"));
+            QMessageBox::warning(this, tr("Export"), tr("Data Export Successful"), tr("Close"));
 
             break;
         }
@@ -376,8 +357,8 @@ void ui_costum_tran::receiveStatus(CostumTranReceive::Status status)
             ui->pushButtonExportAlarmData->setEnabled(true);
             ui->pushButtonExportHistoricalData->setText(tr("Start"));
 
-            emit reportStatus(QString("%1 CLOSED").arg(costumTranReceive->genPortSummary().split('\40').at(0)), false);
-            QMessageBox::information(this, tr("Export"), tr("Data Export Canceled."), tr("Close"));
+            emit reportStatus(QString("%1 CLOSED").arg(genPortSum().split('\40').at(0)), false);
+            QMessageBox::information(this, tr("Export"), tr("Data Export Cancelled."), tr("Close"));
             break;
         }
 
@@ -401,7 +382,7 @@ void ui_costum_tran::receiveStatus(CostumTranReceive::Status status)
             ui->pushButtonExportAlarmData->setEnabled(true);
             ui->pushButtonExportHistoricalData->setText(tr("Start"));
 
-            emit reportStatus(QString("%1 CLOSED").arg(costumTranReceive->genPortSummary().split('\40').at(0)), false);
+            emit reportStatus(QString("%1 CLOSED").arg(genPortSum().split('\40').at(0)), false);
             QMessageBox::information(this, tr("Export"), tr("Communication Time Out, Export Finished."), tr("Close"));
 
             break;
@@ -424,7 +405,7 @@ void ui_costum_tran::receiveStatus(CostumTranReceive::Status status)
             ui->receiveBrowse->setEnabled(true);
             ui->pushButtonExportAlarmData->setText(tr("Start"));
 
-            QMessageBox::warning(this, QStringLiteral("失败"), QStringLiteral("文件接收失败！"), QStringLiteral("关闭"));
+            QMessageBox::warning(this, tr("Export"), tr("Data Export Failed"), tr("Close"));
         }
     }
 }

@@ -7,15 +7,14 @@ CostumTranReceive::CostumTranReceive(QObject *parent) :
     QObject(parent),
     file(new QFile),
     readTimer(new QTimer),
-    writeTimer(new QTimer),
-    serialPort(new QSerialPort)
+    writeTimer(new QTimer)
 {
     setTimeDivide(499);
     setTimeMax(5);
     setErrorMax(999);
 
-    pref = new Preference(this);
-    if(!initSerialPort())
+    // restore serial port properties set last time
+    if(!initPort())
     {
         qDebug("%s serial port init failed.", __func__);
     }
@@ -31,9 +30,8 @@ CostumTranReceive::~CostumTranReceive()
     delete writeTimer;
     if(serialPort->isOpen()) {
         serialPort->close();
-        qDebug("%s closed", qPrintable(serialPort->portName()));
+        qDebug("%s closed", qPrintable(portName()));
     }
-    delete serialPort;
 }
 
 void CostumTranReceive::setFilePath(const QString &path)
@@ -41,131 +39,12 @@ void CostumTranReceive::setFilePath(const QString &path)
     filePath = path + "/";
 }
 
-QString CostumTranReceive::genPortSummary() const
+void CostumTranReceive::updateSerialPort(QSerialPort *port)
 {
-    QString parity = 0;
-    QString sum = 0;
-
-    switch (serialPort->parity()) {
-    case QSerialPort::NoParity:
-        parity = "None";
-        break;
-    case QSerialPort::EvenParity:
-        parity = "Even";
-        break;
-    case QSerialPort::OddParity:
-        parity = "Odd";
-        break;
-    default:
-        parity = "Unknown";
-        break;
-    }
-
-    return sum.sprintf("%s OPEND, %d, %d, %s, %d", qPrintable(serialPort->portName()), serialPort->baudRate(),
-                       serialPort->dataBits(), qPrintable(parity.toUpper()), serialPort->stopBits());
-}
-
-void CostumTranReceive::setPort(QSerialPort *port)
-{
-    if(port)
+    if(!setPort(port))
     {
-        serialPort->setPortName(port->portName());
-        if(!serialPort->setBaudRate(port->baudRate()))
-        {
-            qDebug() << __func__ << "set baud rate failed";
-            return;
-        }
-        if(!serialPort->setDataBits(port->dataBits()))
-        {
-            qDebug() << __func__ << "set data bits failed";
-            return;
-        }
-        if(!serialPort->setParity(port->parity()))
-        {
-            qDebug() << __func__ << "set parity failed";
-            return;
-        }
-        if(!serialPort->setStopBits(port->stopBits()))
-        {
-            qDebug() << __func__ << "set stop Bits failed";
-            return;
-        }
+        qDebug("%s set serial port failed.", __func__);
     }
-}
-
-void CostumTranReceive::setPortName(const QString &name)
-{
-    serialPort->setPortName(name);
-}
-
-void CostumTranReceive::setPortBaudRate(qint32 baudrate)
-{
-    serialPort->setBaudRate(baudrate);
-}
-
-bool CostumTranReceive::openPort()
-{
-    return serialPort->open(QSerialPort::ReadWrite);
-}
-
-void CostumTranReceive::closePort()
-{
-    if(serialPort->isOpen())
-    {
-        serialPort->close();
-    }
-}
-
-bool CostumTranReceive::initSerialPort()
-{
-    QString _parity = pref->parity();
-    QSerialPort::DataBits dataBits = QSerialPort::DataBits(pref->dataBits());
-    QSerialPort::StopBits stopBits;
-    QSerialPort::Parity parity;
-
-    switch (pref->stopBits()) {
-    case 1:
-        stopBits = QSerialPort::OneStop;
-        break;
-    case 2:
-        stopBits = QSerialPort::OneAndHalfStop;
-        break;
-    case 3:
-        stopBits = QSerialPort::TwoStop;
-        break;
-    default:
-        stopBits = QSerialPort::UnknownStopBits;
-        break;
-    }
-
-    if(!_parity.compare("None", Qt::CaseInsensitive)) {
-        parity = QSerialPort::NoParity;
-    } else if(!_parity.compare("Even", Qt::CaseInsensitive)) {
-        parity = QSerialPort::EvenParity;
-    } else if(!_parity.compare("Odd", Qt::CaseInsensitive)) {
-        parity = QSerialPort::OddParity;
-    } else {
-        parity = QSerialPort::UnknownParity;
-    }
-
-    serialPort->setPortName(pref->portName());
-    if(!serialPort->setBaudRate(pref->baudRate())) {
-        return false;
-    }
-    if(!serialPort->setDataBits(dataBits)) {
-        return false;
-    }
-    if(!serialPort->setStopBits(stopBits)) {
-        return false;
-    }
-    if(!serialPort->setParity(parity)) {
-        return false;
-    }
-    if(!serialPort->setFlowControl(QSerialPort::NoFlowControl)) {
-        return false;
-    }
-
-    return true;
 }
 
 bool CostumTranReceive::startReceive()
@@ -219,7 +98,7 @@ void CostumTranReceive::writeTimeOut()
 {
     writeTimer->stop();
     serialPort->close();
-    qDebug("%s closed", qPrintable(serialPort->portName()));
+    qDebug("%s closed", qPrintable(portName()));
     receiveStatus(status);
 }
 

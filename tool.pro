@@ -29,7 +29,8 @@ SOURCES += main.cpp \
     info_display/infodisplay.cpp \
     info_display/modbushelper.cpp \
     options/optionsdialog.cpp \
-    preference/preference.cpp
+    preference/preference.cpp \
+    serialport_helper/serialporthelper.cpp
 
 HEADERS  += widget.h \
     costum_tran/costum_tran_ui.h \
@@ -44,7 +45,8 @@ HEADERS  += widget.h \
     info_display/modbushelper.h \
     options/optionsdialog.h \
     preference/preference.h \
-    info_display/defs.h
+    info_display/defs.h \
+    serialport_helper/serialporthelper.h
 
 FORMS    += widget.ui \
     costum_tran/costum_tran_ui.ui \
@@ -62,6 +64,7 @@ INCLUDEPATH += costum_tran \
     info_display \
     options \
     preference \
+    serialport_helper \
     3rd/quc/inc \
     3rd/corevolgrp/inc \
     3rd/modbus/inc

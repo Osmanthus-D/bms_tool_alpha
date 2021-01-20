@@ -1,16 +1,17 @@
 #ifndef UI_YMODEM_H
 #define UI_YMODEM_H
-#include "YmodemFileTransmit.h"
-#include "YmodemFileReceive.h"
-#include <QSerialPort>
 
 #include <QWidget>
+#include <QSerialPort>
+#include "serialporthelper.h"
+#include "YmodemFileTransmit.h"
+#include "YmodemFileReceive.h"
 
 namespace Ui {
 class ui_ymodem;
 }
 
-class ui_ymodem : public QWidget
+class ui_ymodem : public QWidget, public SerialPortHelper
 {
     Q_OBJECT
 
@@ -31,6 +32,7 @@ public:
 signals:
     void ymodem_signel(ui_ymodem::Status status);
     void reportStatus(QString tip, bool ok, const QString & module = "UPDATE");
+    void serialPortUpdated(QSerialPort *port);
 
 private slots:
     //void on_btn_start_update_clicked();
@@ -39,28 +41,21 @@ private slots:
     void transmitProgress(int progress);
     void receiveProgress(int progress);
     void on_transmitBrowse_clicked();
+    void updateSerialPort(QSerialPort *port);
     void ReadData();
     void ss_timer_irq();
-     void on_receiveBrowse_clicked();
-
-     void on_transmitButton_clicked();
-
-     void on_receiveButton_clicked();
-
-     void on_btn_find_seriaport_clicked();
-
-     void on_btn_open_port_clicked();
-
-     void on_btn_start_update_clicked();
-
-     void show_received(QString msg);
-
-     void show_sent(QString msg);
+    void on_receiveBrowse_clicked();
+    void on_transmitButton_clicked();
+    void on_receiveButton_clicked();
+    void on_btn_find_seriaport_clicked();
+    void on_btn_open_port_clicked();
+    void on_btn_start_update_clicked();
+    void show_received(QString msg);
+    void show_sent(QString msg);
 
 private:
     Ui::ui_ymodem *ui;
     QTimer *timer;
-    QSerialPort *serialPort;
     YmodemFileTransmit *ymodemFileTransmit;
     YmodemFileReceive *ymodemFileReceive;
     bool transmitButtonStatus;
